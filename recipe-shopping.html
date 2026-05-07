@@ -244,6 +244,18 @@
 
     .btn-download:hover { background: var(--accent-hover); }
 
+    .btn-line {
+      background: #06C755;
+      color: #fff;
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .btn-line:hover { background: #05a848; }
+
     /* Shopping list image preview (hidden, used for canvas) */
     #shopping-canvas { display: none; }
 
@@ -313,6 +325,12 @@
             <line x1="12" y1="15" x2="12" y2="3"/>
           </svg>
           買い物リストを画像で保存
+        </button>
+        <button class="btn-line" onclick="sendToLine()">
+          <svg width="18" height="18" viewBox="0 0 40 40" fill="currentColor">
+            <path d="M20 2C10.06 2 2 8.84 2 17.26c0 7.3 6.47 13.42 15.22 14.6.59.13 1.4.39 1.6.9.18.46.12 1.18.06 1.64l-.26 1.56c-.08.46-.37 1.8 1.58.98 1.95-.82 10.52-6.2 14.36-10.62C36.8 23.2 38 20.35 38 17.26 38 8.84 29.94 2 20 2z"/>
+          </svg>
+          LINEで送る
         </button>
       </div>
     </div>
@@ -628,6 +646,29 @@ function downloadImage() {
   link.download = `shopping-list-${dateStr.replace(/\//g, '')}.png`;
   link.href = canvas.toDataURL('image/png');
   link.click();
+}
+
+// ─── LINEシェア ────────────────────────────────────────────────────────────
+
+function sendToLine() {
+  const checked = [...document.querySelectorAll('.ingredient-item.checked')];
+  const all = [...document.querySelectorAll('.ingredient-item')];
+  const targets = checked.length > 0 ? checked : all;
+
+  if (targets.length === 0) { alert('材料がありません。'); return; }
+
+  const today = new Date();
+  const dateStr = `${today.getFullYear()}/${String(today.getMonth()+1).padStart(2,'0')}/${String(today.getDate()).padStart(2,'0')}`;
+
+  const lines = targets.map(el => {
+    const name = el.querySelector('.ingredient-name').textContent;
+    const qty = el.querySelector('.ingredient-qty')?.textContent || '';
+    return qty ? `□ ${name}　${qty}` : `□ ${name}`;
+  });
+
+  const text = `🛒 買い物リスト（${dateStr}）\n\n${lines.join('\n')}`;
+  const url = `https://line.me/R/share?text=${encodeURIComponent(text)}`;
+  window.open(url, '_blank');
 }
 
 function roundRect(ctx, x, y, w, h, r) {
