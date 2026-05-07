@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>レシピ → 買い物リスト</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f5f5f0;
+      --surface: #ffffff;
+      --border: #e0ddd8;
+      --accent: #4a7c59;
+      --accent-light: #e8f2ec;
+      --accent-hover: #3a6347;
+      --text: #1a1a1a;
+      --text-muted: #777;
+      --checked-bg: #f0f7f2;
+      --radius: 12px;
+      --shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Hiragino Sans', 'Meiryo', sans-serif;
+      min-height: 100vh;
+      padding: 24px 16px 48px;
+    }
+
+    .container {
+      max-width: 680px;
+      margin: 0 auto;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+
+    header h1 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: 0.02em;
+    }
+
+    header p {
+      margin-top: 6px;
+      font-size: 0.88rem;
+      color: var(--text-muted);
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      box-shadow: var(--shadow);
+      margin-bottom: 20px;
+    }
+
+    .card-title {
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 160px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px;
+      font-size: 0.95rem;
+      font-family: inherit;
+      color: var(--text);
+      background: var(--bg);
+      resize: vertical;
+      line-height: 1.7;
+      transition: border-color 0.2s;
+      outline: none;
+    }
+
+    textarea:focus { border-color: var(--accent); }
+
+    textarea::placeholder { color: #bbb; }
+
+    .btn-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 14px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      cursor: pointer;
+      border: none;
+      border-radius: 8px;
+      font-family: inherit;
+      font-weight: 600;
+      font-size: 0.9rem;
+      padding: 10px 20px;
+      transition: background 0.15s, transform 0.1s;
+    }
+
+    button:active { transform: scale(0.97); }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+      flex: 1;
+    }
+
+    .btn-primary:hover { background: var(--accent-hover); }
+
+    .btn-secondary {
+      background: transparent;
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover { background: var(--bg); }
+
+    /* Ingredients list */
+    #ingredients-section { display: none; }
+
+    .ingredients-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .ingredients-header h2 {
+      font-size: 1rem;
+      font-weight: 700;
+    }
+
+    .select-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .link-btn {
+      background: none;
+      border: none;
+      color: var(--accent);
+      font-size: 0.82rem;
+      font-weight: 600;
+      padding: 4px 8px;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+
+    .link-btn:hover { background: var(--accent-light); }
+
+    .ingredient-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .ingredient-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 14px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      transition: background 0.15s, border-color 0.15s;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .ingredient-item:hover { border-color: var(--accent); }
+
+    .ingredient-item.checked {
+      background: var(--checked-bg);
+      border-color: var(--accent);
+    }
+
+    .ingredient-item input[type="checkbox"] {
+      width: 20px;
+      height: 20px;
+      accent-color: var(--accent);
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .ingredient-name {
+      flex: 1;
+      font-size: 0.95rem;
+    }
+
+    .ingredient-item.checked .ingredient-name {
+      font-weight: 600;
+      color: var(--accent-hover);
+    }
+
+    .ingredient-qty {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+
+    .checked-count {
+      margin-top: 14px;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      text-align: right;
+    }
+
+    .checked-count span {
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    /* Download button */
+    .download-row {
+      margin-top: 20px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .btn-download {
+      background: var(--accent);
+      color: #fff;
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .btn-download:hover { background: var(--accent-hover); }
+
+    /* Shopping list image preview (hidden, used for canvas) */
+    #shopping-canvas { display: none; }
+
+    /* Empty state */
+    .empty-state {
+      text-align: center;
+      padding: 32px 16px;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
+    .empty-state svg { margin-bottom: 10px; opacity: 0.3; }
+
+    /* Hint example */
+    .hint {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 10px;
+      line-height: 1.6;
+    }
+
+    .hint strong { color: var(--text); }
+
+    @media (max-width: 480px) {
+      .card { padding: 18px; }
+      header h1 { font-size: 1.3rem; }
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <h1>🛒 レシピ → 買い物リスト</h1>
+    <p>レシピを貼り付けると材料を自動で抽出します</p>
+  </header>
+
+  <!-- Input card -->
+  <div class="card">
+    <div class="card-title">レシピを入力</div>
+    <textarea id="recipe-input" placeholder="例）&#10;チキンカレー（4人分）&#10;・鶏もも肉 400g&#10;・玉ねぎ 2個&#10;・じゃがいも 3個&#10;・にんじん 1本&#10;・カレールー 1箱&#10;・サラダ油 大さじ2&#10;・水 800ml"></textarea>
+    <p class="hint"><strong>ヒント：</strong>「材料」「ingredients」などの見出しがあると精度が上がります。箇条書き・表形式・自然文どれでもOK。</p>
+    <div class="btn-row">
+      <button class="btn-primary" onclick="extractIngredients()">材料を抽出する</button>
+      <button class="btn-secondary" onclick="clearAll()">クリア</button>
+    </div>
+  </div>
+
+  <!-- Ingredients section -->
+  <div id="ingredients-section">
+    <div class="card">
+      <div class="ingredients-header">
+        <h2>抽出された材料</h2>
+        <div class="select-actions">
+          <button class="link-btn" onclick="checkAll()">すべて選択</button>
+          <button class="link-btn" onclick="uncheckAll()">すべて解除</button>
+        </div>
+      </div>
+      <ul class="ingredient-list" id="ingredient-list"></ul>
+      <p class="checked-count">選択中: <span id="checked-num">0</span> / <span id="total-num">0</span> 品目</p>
+
+      <div class="download-row">
+        <button class="btn-download btn-primary" onclick="downloadImage()">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          買い物リストを画像で保存
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<canvas id="shopping-canvas"></canvas>
+
+<script>
+// ─── 材料抽出ロジック ────────────────────────────────────────────────────────
+
+const UNIT_PATTERN = /(\d+[\/.]\d+|\d+[\d,．,]*)\s*(g|kg|ml|l|cc|本|個|枚|袋|缶|箱|束|株|片|粒|滴|大さじ|小さじ|カップ|適量|少々|ひとつまみ|少し|適宜|お好みで|少量)?/i;
+
+// セクション見出しと無視ワード
+const SECTION_HEADERS = /^(材料|ingredients?|食材|買い物|必要なもの|用意するもの|【材料】|＜材料＞|\[材料\])/i;
+const IGNORE_LINES = /^(作り方|手順|instructions?|directions?|方法|ステップ|step|How to|調理|[\d０-９]+\.|\d+\)|①|②|③|④|⑤|⑥|⑦|⑧|⑨|⑩|まず|次に|最後に|仕上げに|盛り付け|注記|memo|note|tip|ヒント|ポイント)/i;
+const BULLET_RE = /^[\s　]*[・•\-＊\*◆▶▷→►●■★✓√□][\s　]*/;
+const TABLE_RE = /^\|/; // markdown table
+
+function extractIngredients() {
+  const text = document.getElementById('recipe-input').value.trim();
+  if (!text) { alert('レシピを入力してください。'); return; }
+
+  const lines = text.split(/\r?\n/);
+  const candidates = [];
+
+  let inIngredientSection = false;
+  let inCookingSection = false;
+
+  for (let raw of lines) {
+    const line = raw.trim();
+    if (!line) continue;
+
+    // セクション判定
+    if (SECTION_HEADERS.test(line)) { inIngredientSection = true; inCookingSection = false; continue; }
+    if (IGNORE_LINES.test(line) && !BULLET_RE.test(line)) { inCookingSection = true; inIngredientSection = false; continue; }
+    if (inCookingSection) continue;
+
+    // 箇条書き・テーブル行を優先的にパース
+    let content = line;
+    content = content.replace(BULLET_RE, '');
+    if (TABLE_RE.test(content)) {
+      content = content.replace(/\|/g, ' ').trim();
+    }
+    // 数字で始まる手順行（例: 1. 鶏肉を…）は除外
+    if (/^[\d０-９]+[\.。）\)]\s*[ぁ-ん]/.test(line)) continue;
+    // 非常に短い行（1文字以下）や句点で終わる長い文は除外
+    if (content.length <= 1) continue;
+    if (content.length > 60 && /[。、]/.test(content)) continue;
+
+    if (inIngredientSection || BULLET_RE.test(raw) || TABLE_RE.test(raw)) {
+      const parsed = parseLine(content);
+      if (parsed) candidates.push(parsed);
+    } else {
+      // セクション指定なし: 数量っぽい表現があれば材料とみなす
+      if (UNIT_PATTERN.test(content) || /[・\-] /.test(raw)) {
+        const parsed = parseLine(content);
+        if (parsed) candidates.push(parsed);
+      }
+    }
+  }
+
+  // セクション未検出の場合は全行を再スキャン
+  if (candidates.length === 0) {
+    for (let raw of lines) {
+      const line = raw.replace(BULLET_RE, '').trim();
+      if (!line || line.length <= 1) continue;
+      if (IGNORE_LINES.test(line)) continue;
+      if (/[。、]/.test(line) && line.length > 40) continue;
+      const parsed = parseLine(line);
+      if (parsed) candidates.push(parsed);
+    }
+  }
+
+  // 重複除去
+  const seen = new Set();
+  const unique = candidates.filter(c => {
+    if (seen.has(c.name)) return false;
+    seen.add(c.name);
+    return true;
+  });
+
+  renderIngredients(unique);
+}
+
+const UNIT_WORDS = 'grams?|gram|ounces?|oz|pounds?|lbs?|liters?|litres?|milliliters?|millilitres?|ml|kg|g|l|cc|tbs?p|tsp|cups?|本|個|枚|袋|缶|箱|束|株|片|粒|滴|大さじ|小さじ|カップ|適量|少々|ひとつまみ|少量|少し|適宜|お好みで';
+
+function parseLine(line) {
+  line = line.replace(/[\t　]/g, ' ').trim();
+  if (!line) return null;
+
+  // "数量 [単位] 名前" パターン (例: "300 grams 鶏むね肉", "2 個 玉ねぎ", "300 鶏むね肉")
+  const qtyFirst = line.match(new RegExp(`^([\\d\\/\\.][\\d,\\.]*\\s*(?:${UNIT_WORDS})?)\\s+(.+)$`, 'i'));
+  if (qtyFirst) {
+    const qty = qtyFirst[1].trim();
+    const name = cleanName(qtyFirst[2]);
+    if (name.length >= 1 && name.length <= 40) return { name, qty };
+  }
+
+  // "名前 数量[単位]" パターン (例: "鶏もも肉 400g", "玉ねぎ 2個")
+  const nameFirst = line.match(new RegExp(`^(.+?)\\s+([\\d\\/\\.][\\d,\\.]*\\s*(?:${UNIT_WORDS})?)\\s*$`, 'i'));
+  if (nameFirst) {
+    const name = cleanName(nameFirst[1]);
+    const qty = nameFirst[2].trim();
+    if (name.length >= 1) return { name, qty };
+  }
+
+  // 数量なしでもOK（材料名のみ）
+  const name = cleanName(line);
+  if (name.length >= 1 && name.length <= 40) return { name, qty: '' };
+  return null;
+}
+
+function cleanName(s) {
+  return s
+    .replace(/^[（(【\[《〈「『].*?[）)】\]》〉」』]/, '') // 括弧のカテゴリ
+    .replace(/[（(【\[《〈「『][^）)】\]》〉」』]*$/, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+// ─── UI ────────────────────────────────────────────────────────────────────
+
+function renderIngredients(items) {
+  const section = document.getElementById('ingredients-section');
+  const list = document.getElementById('ingredient-list');
+
+  if (items.length === 0) {
+    list.innerHTML = '<li class="empty-state"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><div>材料を検出できませんでした。<br>箇条書き形式で入力してみてください。</div></li>';
+    section.style.display = 'block';
+    updateCount();
+    return;
+  }
+
+  list.innerHTML = items.map((item, i) => `
+    <li class="ingredient-item" onclick="toggleItem(${i})" id="item-${i}">
+      <input type="checkbox" id="cb-${i}" onclick="event.stopPropagation(); toggleItem(${i})">
+      <span class="ingredient-name">${escHtml(item.name)}</span>
+      ${item.qty ? `<span class="ingredient-qty">${escHtml(item.qty)}</span>` : ''}
+    </li>
+  `).join('');
+
+  document.getElementById('total-num').textContent = items.length;
+  section.style.display = 'block';
+  updateCount();
+}
+
+function toggleItem(i) {
+  const item = document.getElementById(`item-${i}`);
+  const cb = document.getElementById(`cb-${i}`);
+  cb.checked = !cb.checked;
+  item.classList.toggle('checked', cb.checked);
+  updateCount();
+}
+
+function checkAll() {
+  document.querySelectorAll('.ingredient-item').forEach((el, i) => {
+    document.getElementById(`cb-${i}`).checked = true;
+    el.classList.add('checked');
+  });
+  updateCount();
+}
+
+function uncheckAll() {
+  document.querySelectorAll('.ingredient-item').forEach((el, i) => {
+    document.getElementById(`cb-${i}`).checked = false;
+    el.classList.remove('checked');
+  });
+  updateCount();
+}
+
+function updateCount() {
+  const checked = document.querySelectorAll('.ingredient-item input:checked').length;
+  document.getElementById('checked-num').textContent = checked;
+}
+
+function clearAll() {
+  document.getElementById('recipe-input').value = '';
+  document.getElementById('ingredient-list').innerHTML = '';
+  document.getElementById('ingredients-section').style.display = 'none';
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ─── 画像生成・ダウンロード ─────────────────────────────────────────────────
+
+function downloadImage() {
+  const checked = [...document.querySelectorAll('.ingredient-item.checked')];
+  const all = [...document.querySelectorAll('.ingredient-item')];
+  const targets = checked.length > 0 ? checked : all;
+
+  if (targets.length === 0) { alert('材料がありません。'); return; }
+
+  const items = targets.map(el => {
+    const name = el.querySelector('.ingredient-name').textContent;
+    const qty = el.querySelector('.ingredient-qty')?.textContent || '';
+    return { name, qty };
+  });
+
+  const PADDING = 36;
+  const ROW_H = 52;
+  const WIDTH = 520;
+  const HEADER_H = 80;
+  const FOOTER_H = 44;
+  const HEIGHT = HEADER_H + items.length * ROW_H + PADDING + FOOTER_H;
+
+  const canvas = document.getElementById('shopping-canvas');
+  canvas.width = WIDTH * 2;   // retina
+  canvas.height = HEIGHT * 2;
+  canvas.style.width = WIDTH + 'px';
+  canvas.style.height = HEIGHT + 'px';
+
+  const ctx = canvas.getContext('2d');
+  ctx.scale(2, 2);
+
+  // Background
+  ctx.fillStyle = '#f5f5f0';
+  ctx.fillRect(0, 0, WIDTH, HEIGHT);
+
+  // Header strip
+  const grad = ctx.createLinearGradient(0, 0, WIDTH, 0);
+  grad.addColorStop(0, '#4a7c59');
+  grad.addColorStop(1, '#5a9e6e');
+  ctx.fillStyle = grad;
+  roundRect(ctx, 0, 0, WIDTH, HEADER_H, 0);
+  ctx.fill();
+
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 22px "Hiragino Sans", Meiryo, sans-serif';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('🛒  買い物リスト', PADDING, HEADER_H / 2);
+
+  // Date
+  const today = new Date();
+  const dateStr = `${today.getFullYear()}/${String(today.getMonth()+1).padStart(2,'0')}/${String(today.getDate()).padStart(2,'0')}`;
+  ctx.font = '12px "Hiragino Sans", Meiryo, sans-serif';
+  ctx.fillStyle = 'rgba(255,255,255,0.75)';
+  ctx.textAlign = 'right';
+  ctx.fillText(dateStr, WIDTH - PADDING, HEADER_H / 2);
+  ctx.textAlign = 'left';
+
+  // Item rows
+  items.forEach((item, i) => {
+    const y = HEADER_H + i * ROW_H;
+    // Alternating row
+    ctx.fillStyle = i % 2 === 0 ? '#ffffff' : '#f9f9f6';
+    ctx.fillRect(PADDING / 2, y, WIDTH - PADDING, ROW_H);
+
+    // Checkbox circle
+    const cx = PADDING / 2 + 20;
+    const cy = y + ROW_H / 2;
+    ctx.strokeStyle = '#4a7c59';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(cx, cy, 10, 0, Math.PI * 2);
+    ctx.stroke();
+    // Check mark
+    ctx.strokeStyle = '#4a7c59';
+    ctx.lineWidth = 2.2;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(cx - 5, cy);
+    ctx.lineTo(cx - 1, cy + 4);
+    ctx.lineTo(cx + 5, cy - 4);
+    ctx.stroke();
+
+    // Name
+    ctx.fillStyle = '#1a1a1a';
+    ctx.font = '15px "Hiragino Sans", Meiryo, sans-serif';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(item.name, cx + 18, cy);
+
+    // Qty (right aligned)
+    if (item.qty) {
+      ctx.fillStyle = '#888';
+      ctx.font = '13px "Hiragino Sans", Meiryo, sans-serif';
+      ctx.textAlign = 'right';
+      ctx.fillText(item.qty, WIDTH - PADDING, cy);
+      ctx.textAlign = 'left';
+    }
+
+    // Divider
+    if (i < items.length - 1) {
+      ctx.strokeStyle = '#e8e8e4';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(PADDING / 2 + 30, y + ROW_H);
+      ctx.lineTo(WIDTH - PADDING / 2, y + ROW_H);
+      ctx.stroke();
+    }
+  });
+
+  // Count summary
+  const summaryY = HEADER_H + items.length * ROW_H + 14;
+  ctx.fillStyle = '#aaa';
+  ctx.font = '12px "Hiragino Sans", Meiryo, sans-serif';
+  ctx.textAlign = 'right';
+  ctx.fillText(`計 ${items.length} 品目`, WIDTH - PADDING, summaryY);
+  ctx.textAlign = 'left';
+
+  // Footer
+  ctx.fillStyle = '#4a7c59';
+  ctx.globalAlpha = 0.12;
+  ctx.fillRect(0, HEIGHT - FOOTER_H, WIDTH, FOOTER_H);
+  ctx.globalAlpha = 1;
+
+  // Download
+  const link = document.createElement('a');
+  link.download = `shopping-list-${dateStr.replace(/\//g, '')}.png`;
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+</script>
+</body>
+</html>
